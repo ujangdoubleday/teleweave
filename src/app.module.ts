@@ -5,6 +5,7 @@ import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { TelegramModule } from './telegram/telegram.module.js';
 import { WebhookModule } from './webhook/webhook.module.js';
+import { WorkerModule } from './worker/worker.module.js';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { WebhookModule } from './webhook/webhook.module.js';
 
     TelegramModule,
     WebhookModule,
+    WorkerModule,
   ],
   controllers: [AppController],
   providers: [AppService],
