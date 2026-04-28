@@ -6,6 +6,7 @@ import type {
   SendMessagePayload,
   TelegramApiResponse,
   TelegramMessage,
+  TelegramUser,
 } from './interfaces/telegram-api.interfaces.js';
 
 @Injectable()
@@ -53,6 +54,27 @@ export class TelegramService {
 
     this.logger.log(`Message ${data.result.message_id} sent to chat ${chatId}`);
 
+    return data.result;
+  }
+
+  /**
+   * Verify the bot token by calling the /getMe endpoint.
+   * @returns Bot user info if the token is valid.
+   */
+  async getMe(): Promise<TelegramUser> {
+    const url = `${this.baseUrl}/getMe`;
+
+    const { data } = await firstValueFrom(
+      this.httpService.get<TelegramApiResponse<TelegramUser>>(url),
+    );
+
+    if (!data.ok) {
+      throw new Error(
+        `Telegram API error ${data.error_code}: ${data.description}`,
+      );
+    }
+
+    this.logger.log(`Bot verified: @${data.result.username}`);
     return data.result;
   }
 }
