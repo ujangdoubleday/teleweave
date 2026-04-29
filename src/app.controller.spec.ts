@@ -15,8 +15,15 @@ describe('AppController', () => {
   });
 
   describe('root', () => {
-    it('should return "Hello World!"', () => {
-      expect(appController.getHello()).toBe('Hello World!');
+    it('should return service status object', () => {
+      const result = appController.getHello();
+
+      expect(result).toMatchObject({
+        status: 200,
+        message: 'okok',
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        timestamp: expect.any(String),
+      });
     });
   });
 });
