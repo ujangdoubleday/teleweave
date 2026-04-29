@@ -49,29 +49,32 @@ export class CommandProcessor extends WorkerHost {
       `Processing job ${job.id} | update ${updateId} | @${username ?? 'unknown'}`,
     );
 
-    const reply = await this.routeCommand(text);
+    const replies = await this.routeCommand(text);
+    const replyArray = Array.isArray(replies) ? replies : [replies];
 
-    // send the result back to the user
-    try {
-      const truncated = this.truncateOutput(reply);
-      await this.telegramService.sendMessage(chatId, truncated, 'HTML');
+    // send the result(s) back to the user sequentially
+    for (const reply of replyArray) {
+      try {
+        const truncated = this.truncateOutput(reply);
+        await this.telegramService.sendMessage(chatId, truncated, 'HTML');
 
-      this.logger.log(`Result sent to chat ${chatId} for job ${job.id}`);
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
+        this.logger.log(`Result sent to chat ${chatId} for job ${job.id}`);
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
 
-      this.logger.error(
-        `Failed to send result for job ${job.id}: ${errorMessage}`,
-      );
+        this.logger.error(
+          `Failed to send result for job ${job.id}: ${errorMessage}`,
+        );
 
-      throw error;
+        throw error;
+      }
     }
   }
 
   // command Router
 
-  private async routeCommand(text: string): Promise<string> {
+  private async routeCommand(text: string): Promise<string | string[]> {
     const trimmed = text.trim();
 
     // extract the bot command (e.g. "/run") and the rest of the text
