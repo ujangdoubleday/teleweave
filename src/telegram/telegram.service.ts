@@ -29,12 +29,17 @@ export class TelegramService {
    * @param text    - Message text (1-4096 characters)
    * @returns         The sent {@link TelegramMessage}
    */
-  async sendMessage(chatId: number, text: string): Promise<TelegramMessage> {
+  async sendMessage(
+    chatId: number,
+    text: string,
+    parseMode?: 'MarkdownV2' | 'HTML',
+  ): Promise<TelegramMessage> {
     const url = `${this.baseUrl}/sendMessage`;
 
     const payload: SendMessagePayload = {
       chat_id: chatId,
       text,
+      ...(parseMode && { parse_mode: parseMode }),
     };
 
     this.logger.debug(`Sending message to chat ${chatId}`);
