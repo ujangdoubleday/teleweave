@@ -14,5 +14,5 @@ export interface BotCommand {
    * @param args - The text after the command name (may be empty).
    * @returns The reply message to send back to the user.
    */
-  execute(args: string): Promise<string> | string;
+  execute(args: string): Promise<string | string[]> | string | string[];
 }
