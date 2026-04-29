@@ -20,10 +20,17 @@ function escapeHtml(str: string): string {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-function truncateForHtml(text: string): string {
+function chunkOutput(text: string): string[] {
   const limit = 3800; // leave room for HTML tags
-  if (text.length <= limit) return text;
-  return text.slice(0, limit) + '\n\n... (output truncated)';
+  if (text.length <= limit) return [text];
+
+  const chunks: string[] = [];
+  let current = 0;
+  while (current < text.length) {
+    chunks.push(text.slice(current, current + limit));
+    current += limit;
+  }
+  return chunks;
 }
 
 @Injectable()
@@ -33,7 +40,7 @@ export class RunCommand implements BotCommand {
 
   private readonly logger = new Logger(RunCommand.name);
 
-  async execute(args: string): Promise<string> {
+  async execute(args: string): Promise<string | string[]> {
     if (!args) {
       return 'No command provided.\n\nUsage:\n/run ls -la\n/run whoami';
     }
@@ -41,8 +48,10 @@ export class RunCommand implements BotCommand {
     try {
       const output = await this.exec(args);
       const cleanOutput = escapeHtml(stripAnsi(output));
-      const truncated = truncateForHtml(cleanOutput);
-      return `<pre><code class="language-bash">${truncated}</code></pre>`;
+      const chunks = chunkOutput(cleanOutput);
+      return chunks.map(
+        (chunk) => `<pre><code class="language-bash">${chunk}</code></pre>`,
+      );
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
