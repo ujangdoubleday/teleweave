@@ -54,7 +54,7 @@ export class CommandProcessor extends WorkerHost {
     // send the result back to the user
     try {
       const truncated = this.truncateOutput(reply);
-      await this.telegramService.sendMessage(chatId, truncated);
+      await this.telegramService.sendMessage(chatId, truncated, 'HTML');
 
       this.logger.log(`Result sent to chat ${chatId} for job ${job.id}`);
     } catch (error) {
@@ -94,8 +94,13 @@ export class CommandProcessor extends WorkerHost {
   }
 
   private handleUnknown(input: string): string {
+    // escape HTML characters in input to prevent HTML injection issues
+    const safeInput = input
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
     return [
-      `Unknown command: "${input}"`,
+      `Unknown command: <b>${safeInput}</b>`,
       '',
       'Type /help to see available commands.',
     ].join('\n');
