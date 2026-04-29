@@ -1,6 +1,5 @@
-import { Module } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
-import { TelegramTestController } from './telegram-test.controller.js';
+import { Module } from '@nestjs/common';
 import { TelegramService } from './telegram.service.js';
 
 @Module({
@@ -10,7 +9,6 @@ import { TelegramService } from './telegram.service.js';
       maxRedirects: 3,
     }),
   ],
-  controllers: [TelegramTestController],
   providers: [TelegramService],
   exports: [TelegramService],
 })

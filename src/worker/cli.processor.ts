@@ -1,12 +1,15 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
-import { exec } from 'child_process';
+import { execFile } from 'child_process';
 import { Job } from 'bullmq';
 import { TelegramService } from '../telegram/telegram.service.js';
 import type { TelegramTaskPayload } from '../webhook/interfaces/webhook.interfaces.js';
 
 /** Maximum time (ms) a CLI command is allowed to run before being killed. */
 const CLI_TIMEOUT_MS = 30_000;
+
+/** Maximum output buffer size (1 MB). */
+const MAX_BUFFER = 1024 * 1024;
 
 /** Telegram message character limit. */
 const MAX_MESSAGE_LENGTH = 4_000;
@@ -21,9 +24,10 @@ export class CliProcessor extends WorkerHost {
 
   /**
    * Process a queued Telegram task:
-   *  1. Execute a CLI command with the user's text.
-   *  2. Capture stdout / stderr.
-   *  3. Send the result back to the user via Telegram.
+   *  1. Parse the user's message into command + args.
+   *  2. Execute the CLI command via `execFile`.
+   *  3. Capture stdout / stderr.
+   *  4. Send the result back to the user via Telegram.
    */
   async process(job: Job<TelegramTaskPayload>): Promise<void> {
     const { chatId, text, updateId, username } = job.data;
@@ -67,23 +71,36 @@ export class CliProcessor extends WorkerHost {
   }
 
   /**
-   * Execute a CLI command and return its combined output.
-   * The command is a sample echo — replace with your actual CLI tool.
+   * Parse the user's text into a command and arguments, then execute it.
+   *
+   * The user's Telegram message is treated as a shell command.
+   * Example: "ping -c 4 google.com" → command="ping", args=["-c","4","google.com"]
+   *
+   * Uses `execFile` with `shell: true` which is safer than raw `exec`
+   * with string interpolation while still supporting shell features.
    */
   private executeCommand(text: string): Promise<string> {
-    // Sanitize input to prevent shell injection
-    const sanitized = text.replace(/[^\w\s@#.,!?:;()\-=/\\]/g, '');
+    const parts = text.trim().split(/\s+/);
+    const command = parts[0];
+    const args = parts.slice(1);
 
-    // Sample CLI command — swap this for your real tool
-    const command = `echo "Processing: ${sanitized}"`;
+    if (!command) {
+      return Promise.resolve('⚠️ No command provided.');
+    }
+
+    this.logger.debug(`Executing: ${command} ${args.join(' ')}`);
 
     return new Promise((resolve, reject) => {
-      exec(
+      execFile(
         command,
-        { timeout: CLI_TIMEOUT_MS, maxBuffer: 1024 * 1024 },
+        args,
+        {
+          timeout: CLI_TIMEOUT_MS,
+          maxBuffer: MAX_BUFFER,
+          shell: true,
+        },
         (error, stdout, stderr) => {
           if (error) {
-            // Include stderr context when the command fails
             const detail = stderr?.trim()
               ? `${error.message}\nstderr: ${stderr.trim()}`
               : error.message;
@@ -95,7 +112,6 @@ export class CliProcessor extends WorkerHost {
           const stderrTrimmed = stderr?.trim();
 
           if (stderrTrimmed) {
-            // Command succeeded but wrote to stderr — include both
             resolve(`${result}\n\n⚠️ stderr:\n${stderrTrimmed}`);
           } else {
             resolve(result || '(no output)');
