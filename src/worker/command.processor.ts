@@ -4,6 +4,7 @@ import { Job } from 'bullmq';
 import { TelegramService } from '../telegram/telegram.service.js';
 import type { TelegramTaskPayload } from '../webhook/interfaces/webhook.interfaces.js';
 import type { BotCommand } from './commands/bot-command.interface.js';
+import { HelpCommand } from './commands/help.command.js';
 
 /** telegram message character limit. */
 const MAX_MESSAGE_LENGTH = 4_000;
@@ -29,6 +30,12 @@ export class CommandProcessor extends WorkerHost {
 
     // build a lookup map: command name → handler
     this.commandMap = new Map(commands.map((cmd) => [cmd.name, cmd]));
+
+    // register all commands with the HelpCommand to avoid circular dependency
+    const helpCommand = this.commandMap.get('help');
+    if (helpCommand instanceof HelpCommand) {
+      helpCommand.registerCommands(commands);
+    }
 
     this.logger.log(
       `Registered commands: ${[...this.commandMap.keys()].join(', ')}`,
