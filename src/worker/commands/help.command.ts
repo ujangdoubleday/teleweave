@@ -23,6 +23,6 @@ export class HelpCommand implements BotCommand {
       (cmd) => `- /${cmd.name} - ${cmd.description}`,
     );
 
-    return ['Available Commands:', '', ...lines].join('\n');
+    return ['<b>Available Commands:</b>', '', ...lines].join('\n');
   }
 }

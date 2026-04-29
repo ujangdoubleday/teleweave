@@ -8,6 +8,24 @@ const CLI_TIMEOUT_MS = 30_000;
 /** Maximum output buffer size (1 MB). */
 const MAX_BUFFER = 1024 * 1024;
 
+// utilities for formatting
+/* eslint-disable no-control-regex */
+function stripAnsi(str: string): string {
+  const ansiRegex =
+    /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g;
+  return str.replace(ansiRegex, '');
+}
+
+function escapeHtml(str: string): string {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function truncateForHtml(text: string): string {
+  const limit = 3800; // leave room for HTML tags
+  if (text.length <= limit) return text;
+  return text.slice(0, limit) + '\n\n... (output truncated)';
+}
+
 @Injectable()
 export class RunCommand implements BotCommand {
   readonly name = 'run';
@@ -21,13 +39,17 @@ export class RunCommand implements BotCommand {
     }
 
     try {
-      return await this.exec(args);
+      const output = await this.exec(args);
+      const cleanOutput = escapeHtml(stripAnsi(output));
+      const truncated = truncateForHtml(cleanOutput);
+      return `<pre><code class="language-bash">${truncated}</code></pre>`;
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
 
       this.logger.error(`CLI execution failed: ${errorMessage}`);
-      return `Error executing command:\n${errorMessage}`;
+      const cleanError = escapeHtml(stripAnsi(errorMessage));
+      return `<b>Error executing command:</b>\n<pre>${cleanError}</pre>`;
     }
   }
 

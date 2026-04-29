@@ -7,6 +7,6 @@ export class StartCommand implements BotCommand {
   readonly description = 'Show welcome message';
 
   execute(): string {
-    return ['yoo!', '', 'Type /help to see available commands.'].join('\n');
+    return 'yoo!';
   }
 }
